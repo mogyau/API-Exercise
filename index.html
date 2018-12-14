@@ -108,13 +108,19 @@ var places = [];
 var popup_content = []; 
 var list_items = [];
 
+var directionsService;
+var directionsDisplay;
+
 function initMap() {
 	var base = get_base();
+	directionsService = new google.maps.DirectionsService();
+  	directionsDisplay = new google.maps.DirectionsRenderer();
 	
 	map = new google.maps.Map(document.getElementById('map'), {
 	          center: get_base(),
 	          zoom: 17
 	      	});
+	directionsDisplay.setMap(map);
 	infowindow = new google.maps.InfoWindow();
 
 	if(show_center) {
@@ -144,7 +150,7 @@ function initMap() {
 }
 
 function get_base(){
-	return {lat:22.33765325574786, lng:114.15161782441635};
+	return {lat:22.336610, lng:114.150667};
 }
 
 function map_callback(place, status) {
@@ -167,6 +173,7 @@ function create_marker(place, index) {
 	var rating = place.rating;
 	var vicinity = place.vicinity;
 	var content;
+	var base = get_base();
 
 	if (_price){
 		switch (_price){
@@ -191,10 +198,22 @@ function create_marker(place, index) {
     marker.addListener('click', function() {
 			      	infowindow.setContent(content);
 			        infowindow.open(map, marker);
+
+			        var request = {
+					    origin: base,
+					    destination: place_loc,
+					    travelMode: 'WALKING'
+					  };
+					directionsService.route(request, function(result, status) {
+					   	if (status == 'OK') {
+					      	directionsDisplay.setDirections(result);
+					    }
+					});
 			      });
+    //binding
     popup_content[index] = content; 
     places[index] = place;
-	markers[index] = (marker);
+	markers[index] = marker;
 }
 
 
@@ -251,8 +270,20 @@ $(document).ready(function() {
 
     //show popup
     $('#place-list').on('click', '.list-item', function() {
+    	var marker = markers[this.getAttribute('data-index')];
     	infowindow.setContent(popup_content[this.getAttribute('data-index')]);
-    	infowindow.open(map, markers[this.getAttribute('data-index')]);
+    	infowindow.open(map, marker);
+
+    	var request = {
+					    origin: get_base(),
+					    destination: marker.getPosition(),
+					    travelMode: 'WALKING'
+					  };
+		directionsService.route(request, function(result, status) {
+		   	if (status == 'OK') {
+		      	directionsDisplay.setDirections(result);
+		    }
+		});
 	});
 
 
