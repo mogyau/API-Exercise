@@ -279,13 +279,18 @@ $(document).ready(function() {
     	var content = popup_content[this.getAttribute('data-index')];
     	infowindow.setContent(content);
     	infowindow.open(map, marker);
+	    
+	if (directionsDisplay != null) {
+	           directionsDisplay.setMap(null);
+	           directionsDisplay = null;
+	};    
     	directionsDisplay = new google.maps.DirectionsRenderer();
     	directionsDisplay.setMap(map);
     	var request = {
-					    origin: get_base(),
-					    destination: marker.getPosition(),
-					    travelMode: 'WALKING'
-					  };
+		origin: get_base(),
+		destination: marker.getPosition(),
+		travelMode: 'WALKING'
+	};
 	directionsService.route(request, function(result, status) {
 		  if (status == 'OK') {
 		      directionsDisplay.setDirections(result);
