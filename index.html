@@ -63,8 +63,11 @@
     	color:#000000;
     }		
 
-    #sort-price{
+    #sort-price,#reset{
     	font-size: 16px;
+    }
+    #reset{
+    	float: right;
     }
 
     @media screen and (max-width: 768px){
@@ -107,12 +110,13 @@ var markers = [];
 var places = [];
 var popup_content = []; 
 var list_items = [];
-
+var bounds;
 var directionsService;
 var directionsDisplay;
 
 function initMap() {
 	var base = get_base();
+	bounds = new google.maps.LatLngBounds();
 	directionsService = new google.maps.DirectionsService();
   	directionsDisplay = new google.maps.DirectionsRenderer();
 	
@@ -123,16 +127,7 @@ function initMap() {
 	directionsDisplay.setMap(map);
 	infowindow = new google.maps.InfoWindow();
 
-	if(show_center) {
-		var base_marker = new google.maps.Marker({
-		                map : map,
-		                title: "Your position",
-		                position : base
-    			});
-		var base_title = "You are here"
-		infowindow.setContent("<div class='place-title'>" + base_title + "</div>");
-		infowindow.open(map, base_marker);
-	}
+	if(show_center) show_base();
 
 	
 	distance = 300;
@@ -151,6 +146,18 @@ function initMap() {
 
 function get_base(){
 	return {lat:22.336610, lng:114.150667};
+}
+
+function show_base(){
+	var base = get_base();
+	var base_marker = new google.maps.Marker({
+		                map : map,
+		                title: "Your position",
+		                position : base
+    			});
+	var base_title = "You are here"
+	infowindow.setContent("<div class='place-title'>" + base_title + "</div>");
+	infowindow.open(map, base_marker);
 }
 
 function map_callback(place, status) {
@@ -196,20 +203,20 @@ function create_marker(place, index) {
     content = "<div class='place-title'>" + place.name + "<div class='place-content'></div><div class='place-rating'>Rating : " + rating + "</div><div class='place-price'>Price : " + price + "</div><div class='place-location'>" + vicinity + "</div><img class='place-photo' src='"+ photo +"'/></div>";
 
     marker.addListener('click', function() {
-			      	infowindow.setContent(content);
-			        infowindow.open(map, marker);
+		infowindow.setContent(content);
+		infowindow.open(map, marker);
 
-			        var request = {
-					    origin: base,
-					    destination: place_loc,
-					    travelMode: 'WALKING'
-					  };
-					directionsService.route(request, function(result, status) {
-					   	if (status == 'OK') {
-					      	directionsDisplay.setDirections(result);
-					    }
-					});
-			      });
+		var request = {
+			origin: base,
+			destination: place_loc,
+			travelMode: 'WALKING'
+			};
+		directionsService.route(request, function(result, status) {
+			if (status == 'OK') {
+				directionsDisplay.setDirections(result);
+			}
+		});
+	});
     //binding
     popup_content[index] = content; 
     places[index] = place;
@@ -245,6 +252,7 @@ function list_item(place, index){
 				<div class="btn-list">
 					<input type="checkbox" name="show-closed" id="show-closed" checked >Show closed
 					<button name="sort-price" id="sort-price" data-price-order="asc" >Sort by price</button>
+					<button name="reset" id="reset" >Reset</button>
 				</div>
 			</div>
 		</div>
@@ -271,9 +279,11 @@ $(document).ready(function() {
     //show popup
     $('#place-list').on('click', '.list-item', function() {
     	var marker = markers[this.getAttribute('data-index')];
-    	infowindow.setContent(popup_content[this.getAttribute('data-index')]);
+    	var content = popup_content[this.getAttribute('data-index')];
+    	infowindow.setContent(content);
     	infowindow.open(map, marker);
-
+    	directionsDisplay = new google.maps.DirectionsRenderer();
+    	directionsDisplay.setMap(map);
     	var request = {
 					    origin: get_base(),
 					    destination: marker.getPosition(),
@@ -306,6 +316,19 @@ $(document).ready(function() {
 			});
 		}
 		ul.append(li);
+	});
+
+    $('#reset').on('click', function() {
+		infowindow.close();
+
+		if (directionsDisplay != null) {
+	        directionsDisplay.setMap(null);
+	        directionsDisplay = null;
+	    };
+		if(show_center) show_base();
+
+		map.setZoom(17);
+		map.setCenter(get_base());
 	});
 
 });
