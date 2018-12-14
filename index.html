@@ -100,7 +100,6 @@
 var map;
 var infowindow;
 var service;
-var query_args;
 var distance;
 var request_type;
 var show_center = true
@@ -133,7 +132,7 @@ function initMap() {
 
 	//reference - https://developers.google.com/maps/documentation/javascript/places#place_search_requests
 	service = new google.maps.places.PlacesService(map);
-	query_args = { 
+	var query_args = { 
 				   location : base,
 	               radius : distance,
 	               type : request_type
@@ -218,7 +217,7 @@ function create_marker(place, index) {
     //binding
     popup_content[index] = content; 
     places[index] = place;
-	markers[index] = marker;
+    markers[index] = marker;
 }
 
 
@@ -230,8 +229,8 @@ function list_item(place, index){
 	li.setAttribute('data-index', index);
 	li.setAttribute('data-price', place.price_level?place.price_level:"999");
 	li.appendChild(document.createTextNode(place.name));
-	list_items.push(li);
-    list.appendChild(li);
+	list_items[index] = li;
+        list.appendChild(li);
 }
 
 
@@ -287,12 +286,12 @@ $(document).ready(function() {
 					    destination: marker.getPosition(),
 					    travelMode: 'WALKING'
 					  };
-		directionsService.route(request, function(result, status) {
-		   	if (status == 'OK') {
-		      	directionsDisplay.setDirections(result);
-		    }
-		});
+	directionsService.route(request, function(result, status) {
+		  if (status == 'OK') {
+		      directionsDisplay.setDirections(result);
+		   }
 	});
+    });
 
 
     $('#sort-price').on('click', function() {
