@@ -12,16 +12,13 @@
          margin: 0;
          padding: 0;
     }
-
     .container{
     	position: relative;
     	overflow: hidden;
     }
-
     .map-content{
     	z-index: 2;
     }
-
     .map-filter{
 	position: absolute;
 	top: 50%;
@@ -29,7 +26,6 @@
 	right: 3%;
 	width: 450px;
     }
-
     .map-filter .filter #place-list{
     	max-height: 400px;
     	padding: 5px 0;
@@ -37,38 +33,33 @@
 	background-color: rgba(255, 0, 0, .5);
 	z-index: 5;
     }
-
     .map-filter .filter #place-list li{
     	margin-left: 5%;
     }
-
     .btn-list{
     	background-color: #cccccc;
     	margin-top: 2px;
     	z-index: 5;
     }
-
     ul#place-list{
     	margin-top: 0;
     	margin-bottom: 0;
     	list-style: none;
     }
-
     ul#place-list li{
     	font-weight: 600;
     	color:#ffffff;
     	cursor: pointer;
     }
-
     ul#place-list li:hover{
     	color:#000000;
     }		
-
-    #sort-price,#reset{
+    #sort-price,#reset,#list-menu{
     	font-size: 16px;
     }
-    #reset{
-    	float: right;
+
+    #list-menu{
+    	display:none;
     }
 
     @media screen and (max-width: 768px){
@@ -79,13 +70,14 @@
 	    	bottom: 0;
 	    	width: 100%;
 	    }
-
 	    .map-filter .filter{
 	    	width: 100%; 
 	    }
-
 	    .map-filter .filter #place-list{
     		max-height: 240px;
+    	}
+    	#show-closed{
+    		float:left;
     	}
     }
 </style>
@@ -110,7 +102,6 @@ var list_items = [];
 var bounds;
 var directionsService;
 var directionsDisplay;
-
 function initMap() {
 	var base = get_base();
 	bounds = new google.maps.LatLngBounds();
@@ -123,13 +114,10 @@ function initMap() {
 	      	});
 	directionsDisplay.setMap(map);
 	infowindow = new google.maps.InfoWindow();
-
 	if(show_center) show_base();
-
 	
 	distance = 300;
 	request_type = ['restaurant'];
-
 	//reference - https://developers.google.com/maps/documentation/javascript/places#place_search_requests
 	service = new google.maps.places.PlacesService(map);
 	var query_args = { 
@@ -140,11 +128,9 @@ function initMap() {
 	
 	service.nearbySearch(query_args, map_callback);
 }
-
 function get_base(){
 	return {lat:22.336610, lng:114.150667};
 }
-
 function show_base(){
 	var base = get_base();
 	var base_marker = new google.maps.Marker({
@@ -156,7 +142,6 @@ function show_base(){
 	infowindow.setContent("<div class='place-title'>" + base_title + "</div>");
 	infowindow.open(map, base_marker);
 }
-
 function map_callback(place, status) {
     if (status === google.maps.places.PlacesServiceStatus.OK) {
          for (var i = 0; i < place.length; i++) {
@@ -166,7 +151,6 @@ function map_callback(place, status) {
         }
     }
 }
-
 function create_marker(place, index) {
 	//console.log(place);
 	var place_loc = place.geometry.location;
@@ -178,7 +162,6 @@ function create_marker(place, index) {
 	var vicinity = place.vicinity;
 	var content;
 	var base = get_base();
-
 	if (_price){
 		switch (_price){
 			case 0 : price = "Free"; break;
@@ -189,20 +172,24 @@ function create_marker(place, index) {
 			default : price = "N/A";
 		}
 	}
-
 	if (_photo) photo = _photo[0].getUrl({'maxWidth': 120, 'maxHeight': 120});
-
     var marker = new google.maps.Marker({
 		                map : map,
 		                title: place.name,
 		                position : place_loc
     			});
     content = "<div class='place-title'>" + place.name + "<div class='place-content'></div><div class='place-rating'>Rating : " + rating + "</div><div class='place-price'>Price : " + price + "</div><div class='place-location'>" + vicinity + "</div><img class='place-photo' src='"+ photo +"'/></div>";
-
     marker.addListener('click', function() {
 		infowindow.setContent(content);
 		infowindow.open(map, marker);
 
+		if (directionsDisplay != null) {
+	           directionsDisplay.setMap(null);
+	           directionsDisplay = null;
+	    };
+
+    	directionsDisplay = new google.maps.DirectionsRenderer();
+    	directionsDisplay.setMap(map);
 		var request = {
 			origin: base,
 			destination: place_loc,
@@ -219,8 +206,6 @@ function create_marker(place, index) {
     places[index] = place;
     markers[index] = marker;
 }
-
-
 function list_item(place, index){
 	var list = document.getElementById("place-list");
 	li = document.createElement("li");
@@ -232,8 +217,6 @@ function list_item(place, index){
 	list_items[index] = li;
         list.appendChild(li);
 }
-
-
 </script>
 
 <div class="container">
@@ -247,9 +230,13 @@ function list_item(place, index){
 			<div class="filter">
 				<ul id="place-list"></ul>
 				<div class="btn-list">
+					
+					<div class="fuc_btn">
+						<button name="list-menu" id="list-menu" style="display:none;">Menu</button>
+						<button name="sort-price" id="sort-price" data-price-order="asc" >Sort by price</button>
+						<button name="reset" id="reset" >Reset</button>
+					</div>
 					<input type="checkbox" name="show-closed" id="show-closed" checked >Show closed
-					<button name="sort-price" id="sort-price" data-price-order="asc" >Sort by price</button>
-					<button name="reset" id="reset" >Reset</button>
 				</div>
 			</div>
 		</div>
@@ -261,55 +248,49 @@ $(document).ready(function() {
 	//console.log(places);
     $('#show-closed').change(function() {
     	var show = true;
-
     	//marker controller
     	for(var i = 0; i < markers.length; i++){
     		if(!($(this).is(':checked') || places[i].opening_hours)) show = false;
     		markers[i].setVisible(show);
     	}
-
     	//list item controller
     	if(show) $('.list-item').show();
     	else $('.list-item.closed').hide();    	     
     });
-
     //show popup
     $('#place-list').on('click', '.list-item', function() {
     	var marker = markers[this.getAttribute('data-index')];
     	var content = popup_content[this.getAttribute('data-index')];
     	infowindow.setContent(content);
     	infowindow.open(map, marker);
-	    
-	if (directionsDisplay != null) {
+
+    	if (directionsDisplay != null) {
 	           directionsDisplay.setMap(null);
 	           directionsDisplay = null;
-	};    
+	    };
+
     	directionsDisplay = new google.maps.DirectionsRenderer();
     	directionsDisplay.setMap(map);
     	var request = {
-		origin: get_base(),
-		destination: marker.getPosition(),
-		travelMode: 'WALKING'
-	};
+					    origin: get_base(),
+					    destination: marker.getPosition(),
+					    travelMode: 'WALKING'
+					  };
 	directionsService.route(request, function(result, status) {
 		  if (status == 'OK') {
 		      directionsDisplay.setDirections(result);
 		   }
 	});
     });
-
-
     $('#sort-price').on('click', function() {
     	var ul = $("ul#place-list");
     	var li = ul.children("li");
-
     	if ("asc" === $(this).data("price-order")){
     		$('#sort-price').data("price-order","desc");
     		$("#sort-price").html('Sort by price (lower to higher)');
     		li.detach().sort(function(a, b){
 	    		return $(a).data('price') - $(b).data('price');
 			});
-
 		}else{
 			$('#sort-price').data("price-order","asc");
 			$("#sort-price").html('Sort by price (higher to lower)');
@@ -322,17 +303,38 @@ $(document).ready(function() {
 
     $('#reset').on('click', function() {
 		infowindow.close();
-
 		if (directionsDisplay != null) {
 	           directionsDisplay.setMap(null);
 	           directionsDisplay = null;
 	        };
 		if(show_center) show_base();
-
 		map.setZoom(17);
 		map.setCenter(get_base());
 	});
+    function menuList(){
+		if($(window).width()<768){
+			$("#place-list").hide();
+			$("#list-menu").show();
+		}else{
+			$("#place-list").show();
+			$("#list-menu").hide();
+		}
+	}
 
+	$('#list-menu').on('click', function() {
+		var ul = $("#place-list");
+		if(ul.is(":hidden")){
+			ul.show();
+		}else{
+			ul.hide();
+		} 
+	});
+
+
+	menuList();
+	$(window).resize(function(){
+		menuList();
+	});	
 });
 </script>
 </body>
